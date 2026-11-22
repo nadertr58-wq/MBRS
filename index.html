@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultras Lazbakiya - Gestion des Membres</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 24px; color: #1a1a1a; }
+  .container { max-width: 1300px; margin: 0 auto; }
+  header { background: linear-gradient(135deg, #1e3a5f, #2c7be5); color: #fff; padding: 22px 28px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+  header h1 { margin: 0; font-size: 1.4rem; font-weight: 700; }
+  .badge { background: rgba(255,255,255,0.2); padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; }
+  .card { background: #fff; border-radius: 0 0 10px 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.08); padding: 24px 28px; margin-bottom: 24px; }
+  .card + .card { border-radius: 10px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 16px; }
+  .form-grid label { display: block; font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px; text-transform: uppercase; }
+  .form-grid input, .form-grid select { width: 100%; padding: 9px 11px; border: 1px solid #ccd2da; border-radius: 6px; font-size: 0.95rem; }
+  .form-grid input:focus, .form-grid select:focus { outline: none; border-color: #2c7be5; box-shadow: 0 0 0 3px rgba(44,123,229,0.15); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  button { padding: 10px 22px; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #2c7be5; color: #fff; }
+  .btn-primary:hover { background: #1a5bbf; }
+  .btn-success { background: #27ae60; color: #fff; }
+  .btn-pdf { background: #e67e22; color: #fff; }
+  .btn-danger { background: #e74c3c; color: #fff; }
+  .btn-logout { background: #6c757d; color: #fff; }
+  .btn-test { background: #8e44ad; color: #fff; }
+  .search-bar { margin-bottom: 16px; }
+  .search-bar input { width: 100%; padding: 10px 14px; border: 1px solid #ccd2da; border-radius: 6px; font-size: 0.95rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th, td { border: 1px solid #d0d7de; padding: 10px 8px; text-align: left; }
+  th { background: #1e3a5f; color: #fff; font-size: 0.8rem; text-transform: uppercase; position: sticky; top: 0; }
+  tbody tr:nth-child(even) { background: #f8f9fb; }
+  tbody tr:hover { background: #eef4ff; }
+  td.age-cell { font-weight: 700; color: #2c7be5; text-align: center; }
+  .empty { text-align: center; color: #888; font-style: italic; padding: 28px; }
+  .btn-del { background: #e74c3c; color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; }
+  .table-wrap { overflow-x: auto; }
+  footer { text-align: center; color: #888; font-size: 0.8rem; margin-top: 16px; }
+  .login-box { max-width: 420px; margin: 80px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+  .login-box h2 { margin-top: 0; text-align: center; }
+  .login-box input { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ccd2da; border-radius: 6px; font-size: 1rem; }
+  .login-box button { width: 100%; }
+  .role-info { background: #d1ecf1; color: #0c5460; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; margin-bottom: 12px; }
+  .hidden { display: none !important; }
+  .status-msg { padding: 12px 16px; border-radius: 6px; margin-bottom: 14px; font-size: 0.9rem; font-weight: 600; }
+  .status-ok { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+  .status-err { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+  .status-info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+  .status-warn { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+  .diag-box { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 6px; font-family: 'Consolas', monospace; font-size: 0.8rem; margin-top: 12px; max-height: 250px; overflow-y: auto; white-space: pre-wrap; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    header, .card:first-of-type, .search-bar, .actions, footer, .no-print, #statusMsg, #diagCard { display: none !important; }
+    .card { box-shadow: none; padding: 0; }
+    table { font-size: 11px; }
+    th, td { border: 1px solid #000 !important; padding: 6px 4px; }
+    th { background: #ddd !important; color: #000 !important; }
+    .print-title { display: block !important; text-align: center; margin-bottom: 14px; font-size: 18px; font-weight: 700; }
+  }
+  .print-title { display: none; }
+</style>
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="loginScreen" class="login-box">
+  <h2>🔐 Ultras Lazbakiya</h2>
+  <p style="text-align:center;color:#666;">Entrez le mot de passe pour accéder</p>
+  <input type="password" id="passwordInput" placeholder="Mot de passe" onkeypress="if(event.key==='Enter') login()">
+  <button class="btn-primary" onclick="login()">Se connecter</button>
+  <p id="loginError" style="color:red;text-align:center;font-size:0.85rem;margin-top:10px;"></p>
+  <p style="text-align:center;font-size:0.75rem;color:#999;margin-top:16px;">
+    Admin : admin2024 &nbsp;|&nbsp; Amis : amis2024
+  </p>
+</div>
+
+<!-- التطبيق -->
+<div id="appScreen" class="container hidden">
+  <header>
+    <h1>🏛 Ultras Lazbakiya</h1>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span class="badge" id="compteur">0 membre</span>
+      <span class="badge" id="roleBadge">👀 Lecture seule</span>
+      <button class="btn-logout no-print" onclick="logout()" style="padding:6px 14px;font-size:0.8rem;">Déconnexion</button>
+    </div>
+  </header>
+
+  <div id="statusMsg" class="status-msg hidden"></div>
+
+  <!-- تشخيص -->
+  <div class="card no-print" id="diagCard">
+    <div class="role-info">🔧 Diagnostic — testez la connexion à Firebase</div>
+    <div class="actions">
+      <button class="btn-test" onclick="testerConnexion()">🧪 Tester connexion</button>
+      <button class="btn-test" onclick="testerEcriture()">✍️ Tester écriture</button>
+      <button class="btn-test" onclick="voirDiag()">📋 Voir diagnostic</button>
+    </div>
+    <div id="diagBox" class="diag-box hidden"></div>
+  </div>
+
+  <!-- نموذج الإضافة -->
+  <div class="card" id="adminForm" style="display:none;">
+    <div class="role-info">✏️ Mode administrateur : vous pouvez ajouter et supprimer des membres.</div>
+    <div class="form-grid">
+      <div><label for="nom">Nom *</label><input type="text" id="nom" placeholder="Ex : Dupont"></div>
+      <div><label for="prenom">Prénom *</label><input type="text" id="prenom" placeholder="Ex : Jean"></div>
+      <div><label for="dateNaissance">Date de naissance *</label><input type="date" id="dateNaissance"></div>
+      <div><label for="cin">CIN *</label><input type="text" id="cin" placeholder="Ex : 12345678"></div>
+      <div><label for="responsabilite">Responsabilité</label><input type="text" id="responsabilite" placeholder="Ex : Président"></div>
+      <div><label for="dateEntree">Date d'entrée</label><input type="date" id="dateEntree"></div>
+      <div><label for="discipline">Discipline (1 / 0 / -1)</label>
+        <select id="discipline"><option value="-1">-1</option><option value="0" selected>0</option><option value="1">1</option></select>
+      </div>
+      <div><label for="adresse">Adresse</label><input type="text" id="adresse" placeholder="Ex : Rue 12, Tunis"></div>
+    </div>
+    <div class="actions">
+      <button class="btn-primary" onclick="ajouterMembre()">➕ Ajouter</button>
+      <button class="btn-success" onclick="exporterCSV()">📊 Export CSV</button>
+      <button class="btn-pdf" onclick="window.print()">🖨 Imprimer / PDF</button>
+      <button class="btn-danger" onclick="toutSupprimer()">🗑 Tout supprimer</button>
+    </div>
+  </div>
+
+  <div class="card" id="viewerInfo" style="display:none;">
+    <div class="role-info">👀 Mode lecture seule : consultation uniquement.</div>
+    <div class="actions">
+      <button class="btn-success" onclick="exporterCSV()">📊 Export CSV</button>
+      <button class="btn-pdf" onclick="window.print()">🖨 Imprimer / PDF</button>
+    </div>
+  </div>
+
+  <!-- الجدول -->
+  <div class="card">
+    <div class="print-title">Liste des Membres - Ultras Lazbakiya</div>
+    <div class="search-bar no-print">
+      <input type="text" id="recherche" placeholder="🔍 Rechercher..." oninput="afficherMembres()">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nom</th><th>Prénom</th><th>Date naiss.</th><th>Âge</th><th>CIN</th>
+            <th>Responsabilité</th><th>Date entrée</th><th>Discipline</th><th>Adresse</th>
+            <th class="no-print admin-only">Action</th>
+          </tr>
+        </thead>
+        <tbody id="listeMembres"><tr><td colspan="10" class="empty">Chargement...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <footer>Données synchronisées via Firebase.</footer>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, remove, set }
+  from "https://www.gstatic.com/firebasejs/10.7.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBTgchRTnUi7z9jbGtyaJzV0WSGC4Kc_kY",
+  authDomain: "lazbakiya.firebaseapp.com",
+  databaseURL: "https://lazbakiya-default-rtdb.firebaseio.com/",
+  projectId: "lazbakiya",
+  storageBucket: "lazbakiya.firebasestorage.app",
+  messagingSenderId: "518338564729",
+  appId: "1:518338564729:web:02bc1dc8e424cedfd87aa8"
+};
+
+let app = null, db = null, membresRef = null;
+const logs = [];
+const STORAGE_KEY = 'membres_lazbakiya_local';
+
+function log(msg, type = 'info') {
+  const time = new Date().toLocaleTimeString();
+  const line = `[${time}] ${msg}`;
+  logs.push(line);
+  console.log(line);
+  const box = document.getElementById('diagBox');
+  if (box) { box.classList.remove('hidden'); box.textContent = logs.join('\n'); box.scrollTop = box.scrollHeight; }
+}
+
+// Initialisation Firebase
+try {
+  log("🚀 Initialisation Firebase...");
+  app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  membresRef = ref(db, 'membres');
+  log("✅ Firebase initialisé : " + firebaseConfig.databaseURL);
+} catch (e) {
+  log("❌ ERREUR INIT : " + e.message, 'err');
+}
+
+const ADMIN_PASSWORD = "admin2024";
+const VIEWER_PASSWORD = "amis2024";
+
+let isAdmin = false;
+let membres = [];
+let listenerActif = false;
+
+// ---- Sauvegarde locale de secours ----
+function sauvegarderLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(membres)); } catch(e){}
+}
+function chargerLocal() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch(e){ return []; }
+}
+membres = chargerLocal();
+
+// ---- Messages ----
+window.afficherStatus = function(msg, type = 'ok') {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg status-' + type;
+  el.classList.remove('hidden');
+  if (type === 'ok' || type === 'info') setTimeout(() => el.classList.add('hidden'), 5000);
+};
+
+// ---- Login ----
+window.login = function() {
+  const pwd = document.getElementById('passwordInput').value;
+  if (pwd === ADMIN_PASSWORD) isAdmin = true;
+  else if (pwd === VIEWER_PASSWORD) isAdmin = false;
+  else {
+    document.getElementById('loginError').textContent = '❌ Mot de passe incorrect';
+    return;
+  }
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  document.getElementById('roleBadge').textContent = isAdmin ? '✏️ Admin' : '👀 Lecture seule';
+  document.getElementById('adminForm').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('viewerInfo').style.display = isAdmin ? 'none' : 'block';
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = isAdmin ? '' : 'none');
+  ecouterMembres();
+  afficherMembres();
+};
+
+window.logout = function() { location.reload(); };
+
+// ---- Écoute Firebase ----
+function ecouterMembres() {
+  if (listenerActif || !membresRef) return;
+  listenerActif = true;
+  log("👂 Écoute Firebase...");
+  afficherStatus('🔄 Connexion à Firebase...', 'info');
+
+  const timeout = setTimeout(() => {
+    log("⚠️ Pas de réponse de Firebase après 8 secondes. Utilisation du cache local.", 'warn');
+    afficherStatus('⚠️ Firebase ne répond pas — données locales affichées', 'warn');
+    afficherMembres();
+  }, 8000);
+
+  onValue(membresRef, (snapshot) => {
+    clearTimeout(timeout);
+    membres = [];
+    snapshot.forEach(child => {
+      membres.push({ id: child.key, ...child.val() });
+    });
+    log("📥 Membres reçus : " + membres.length);
+    sauvegarderLocal();
+    afficherMembres();
+    if (membres.length === 0) afficherStatus('ℹ️ Aucun membre. Ajoutez-en un !', 'info');
+    else afficherStatus('✅ ' + membres.length + ' membre(s) synchronisé(s)', 'ok');
+  }, (err) => {
+    clearTimeout(timeout);
+    log("❌ ERREUR LECTURE : " + err.message, 'err');
+    afficherStatus('❌ Firebase : ' + err.message + ' — cache local utilisé', 'err');
+    afficherMembres();
+  });
+}
+
+// ---- Utilitaires ----
+function calculerAge(dateStr) {
+  if (!dateStr) return '-';
+  const n = new Date(dateStr), a = new Date();
+  let age = a.getFullYear() - n.getFullYear();
+  const m = a.getMonth() - n.getMonth();
+  if (m < 0 || (m === 0 && a.getDate() < n.getDate())) age--;
+  return age;
+}
+function echapper(t) {
+  const d = document.createElement('div');
+  d.textContent = t == null ? '' : t;
+  return d.innerHTML;
+}
+
+// ---- Ajout avec timeout et ajout local immédiat ----
+window.ajouterMembre = async function() {
+  log("➕ Ajout...");
+  if (!isAdmin) { alert('Réservé à l\'administrateur.'); return; }
+  if (!membresRef) { alert('Firebase non initialisé. Vérifiez F12.'); return; }
+
+  const nom = document.getElementById('nom').value.trim();
+  const prenom = document.getElementById('prenom').value.trim();
+  const dateNaissance = document.getElementById('dateNaissance').value;
+  const cin = document.getElementById('cin').value.trim();
+
+  if (!nom || !prenom || !dateNaissance || !cin) {
+    log("❌ Champs obligatoires vides", 'err');
+    afficherStatus('⚠️ Remplissez Nom, Prénom, Date de naissance et CIN.', 'warn');
+    alert('Champs obligatoires : Nom, Prénom, Date de naissance, CIN.');
+    return;
+  }
+
+  const nouveau = {
+    id: 'local_' + Date.now(),
+    nom, prenom, dateNaissance, cin,
+    responsabilite: document.getElementById('responsabilite').value.trim() || '-',
+    dateEntree: document.getElementById('dateEntree').value || '-',
+    discipline: document.getElementById('discipline').value,
+    adresse: document.getElementById('adresse').value.trim() || '-'
+  };
+
+  // ✅ Ajout immédiat dans le tableau (visible tout de suite)
+  membres.push(nouveau);
+  sauvegarderLocal();
+  afficherMembres();
+  afficherStatus('⏳ Envoi à Firebase...', 'info');
+  log("📤 Envoi à Firebase : " + JSON.stringify(nouveau));
+
+  try {
+    const result = await Promise.race([
+      push(membresRef, nouveau),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout 10s — Firebase ne répond pas')), 10000))
+    ]);
+    log("✅ SUCCÈS Firebase, clé = " + result.key);
+    nouveau.id = result.key;
+    sauvegarderLocal();
+    afficherStatus('✅ Membre ajouté et synchronisé !', 'ok');
+  } catch (e) {
+    log("❌ ÉCHEC : " + e.message, 'err');
+    afficherStatus('⚠️ Ajouté localement, mais échec Firebase : ' + e.message, 'warn');
+  }
+
+  ['nom','prenom','dateNaissance','cin','responsabilite','dateEntree','adresse']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('discipline').value = '0';
+  document.getElementById('nom').focus();
+};
+
+// ---- Suppression ----
+window.supprimerMembre = async function(id) {
+  if (!isAdmin) { alert('Réservé à l\'administrateur.'); return; }
+  if (!confirm('Supprimer ce membre ?')) return;
+  membres = membres.filter(m => m.id !== id);
+  sauvegarderLocal();
+  afficherMembres();
+  if (membresRef && !id.startsWith('local_')) {
+    try { await remove(ref(db, 'membres/' + id)); log("🗑 Supprimé : " + id); }
+    catch(e) { log("❌ Suppression Firebase : " + e.message, 'err'); }
+  }
+  afficherStatus('✅ Membre supprimé', 'ok');
+};
+
+window.toutSupprimer = async function() {
+  if (!isAdmin) { alert('Réservé à l\'administrateur.'); return; }
+  if (membres.length === 0) return;
+  if (!confirm('Supprimer TOUS les membres ?')) return;
+  membres = [];
+  sauvegarderLocal();
+  afficherMembres();
+  if (membresRef) {
+    try { await set(membresRef, null); log("🗑 Liste vidée"); }
+    catch(e) { log("❌ Vidage Firebase : " + e.message, 'err'); }
+  }
+  afficherStatus('✅ Liste vidée', 'ok');
+};
+
+// ---- Affichage ----
+function afficherMembres() {
+  const tbody = document.getElementById('listeMembres');
+  const r = document.getElementById('recherche').value.trim().toLowerCase();
+  let liste = membres.map(m => ({ ...m, age: calculerAge(m.dateNaissance) }));
+  if (r) {
+    liste = liste.filter(m =>
+      [m.nom, m.prenom, m.cin, m.responsabilite, m.adresse].join(' ').toLowerCase().includes(r));
+  }
+  liste.sort((a, b) => a.age - b.age);
+  document.getElementById('compteur').textContent =
+    membres.length + (membres.length > 1 ? ' membres' : ' membre');
+  if (liste.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">Aucun membre enregistré.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = liste.map(m => `
+    <tr>
+      <td>${echapper(m.nom)}</td>
+      <td>${echapper(m.prenom)}</td>
+      <td>${m.dateNaissance}</td>
+      <td class="age-cell">${m.age} ans</td>
+      <td>${echapper(m.cin)}</td>
+      <td>${echapper(m.responsabilite)}</td>
+      <td>${m.dateEntree}</td>
+      <td style="text-align:center;font-weight:700;">${m.discipline}</td>
+      <td>${echapper(m.adresse)}</td>
+      <td class="no-print admin-only" style="display:${isAdmin?'':'none'};">
+        <button class="btn-del" onclick="supprimerMembre('${m.id}')">Suppr.</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ---- Tests diagnostic ----
+window.testerConnexion = function() {
+  log("🧪 Test connexion...");
+  if (!membresRef) { log("❌ Firebase non initialisé", 'err'); return; }
+  const t = setTimeout(() => log("⚠️ Timeout 8s lecture", 'warn'), 8000);
+  onValue(membresRef, (snap) => {
+    clearTimeout(t);
+    const n = snap.exists() ? Object.keys(snap.val()).length : 0;
+    log("✅ Connexion OK — " + n + " membre(s) dans Firebase");
+    afficherStatus('✅ Connexion Firebase OK (' + n + ' membres)', 'ok');
+  }, { onlyOnce: true });
+};
+
+window.testerEcriture = async function() {
+  log("✍️ Test écriture...");
+  if (!db) { log("❌ Firebase non initialisé", 'err'); return; }
+  try {
+    const result = await Promise.race([
+      push(ref(db, 'test'), { msg: "test " + new Date().toISOString(), ts: Date.now() }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('Timeout 10s')), 10000))
+    ]);
+    log("✅ Écriture OK — clé " + result.key);
+    afficherStatus('✅ Écriture Firebase OK !', 'ok');
+    setTimeout(() => remove(ref(db, 'test/' + result.key)).catch(()=>{}), 3000);
+  } catch (e) {
+    log("❌ Écriture échouée : " + e.message, 'err');
+    afficherStatus('❌ Écriture échouée : ' + e.message, 'err');
+  }
+};
+
+window.voirDiag = function() {
+  document.getElementById('diagBox').classList.toggle('hidden');
+};
+
+// ---- Export CSV ----
+window.exporterCSV = function() {
+  if (membres.length === 0) { alert('Aucun membre.'); return; }
+  const entetes = ['Nom','Prénom','Date naissance','Âge','CIN','Responsabilité','Date entrée','Discipline','Adresse'];
+  const lignes = [entetes.join(';')];
+  membres.forEach(m => {
+    lignes.push([m.nom, m.prenom, m.dateNaissance, calculerAge(m.dateNaissance),
+      m.cin, m.responsabilite, m.dateEntree, m.discipline, m.adresse]
+      .map(v => `"${String(v).replace(/"/g,'""')}"`).join(';'));
+  });
+  const blob = new Blob(['\ufeff' + lignes.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'membres_ultras_lazbakiya.csv';
+  a.click();
+};
+
+log("✅ Script prêt.");
+</script>
+</body>
+</html>
